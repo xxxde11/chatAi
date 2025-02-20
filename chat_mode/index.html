@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XXXDE AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* 全局样式 */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      background-color: #d8e9fb;
+      color: #1f2937;
+    }
+
+    /* 容器 */
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 标题 */
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    /* 聊天窗口 */
+    .chat-window {
+      flex: 1;
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+    }
+
+    /* 消息样式 */
+    .message {
+      margin-bottom: 16px;
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .message.user {
+      justify-content: flex-end;
+    }
+
+    .message.bot {
+      justify-content: flex-start;
+    }
+
+    .message-content {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .message.user .message-content {
+      background-color: #3b82f6;
+      color: #ffffff;
+      border-top-right-radius: 4px;
+    }
+
+    .message.bot .message-content {
+      background-color: #f3f4f6;
+      color: #1f2937;
+      border-top-left-radius: 4px;
+    }
+
+    /* 输入框 */
+    .input-container {
+      display: flex;
+      gap: 10px;
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 10px;
+    }
+
+    .input-container textarea {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-container textarea:focus {
+      border-color: #3b82f6;
+    }
+
+    .input-container button {
+      padding: 12px 20px;
+      background-color: #3b82f6;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .input-container button:hover {
+      background-color: #2563eb;
+    }
+
+    /* 加载动画 */
+    .loader {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #f3f4f6;
+      border-top: 2px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 标题 -->
+    <div class="header">
+      <h1>XXXDE AI</h1>
+    </div>
+
+    <!-- 聊天窗口 -->
+    <div class="chat-window" id="chatWindow">
+      <!-- 示例消息 -->
+      <div class="message bot">
+        <div class="message-content">
+          你好! 有什么需要帮助的吗?
+        </div>
+      </div>
+    </div>
+
+    <!-- 输入框 -->
+    <div class="input-container">
+      <textarea id="prompt" placeholder="输入你的问题..." rows="1"></textarea>
+      <input type="file" id="fileInput" style="display: none;" />
+      <!-- <button onclick="document.getElementById('fileInput').click()">上传文件</button> -->
+      <button onclick="sendMessage()" id="sendButton">发送</button>
+    </div>
+  </div>
+
+  <script>
+    // 发送消息
+    async function sendMessage() {
+      const prompt = document.getElementById("prompt").value.trim();
+      const fileInput = document.getElementById("fileInput");
+      const chatWindow = document.getElementById("chatWindow");
+      const sendButton = document.getElementById("sendButton");
+
+      if (!prompt && !fileInput.files[0]) return;
+
+      // 添加用户消息
+      const userMessage = document.createElement("div");
+      userMessage.className = "message user";
+      userMessage.innerHTML = `
+        <div class="message-content">${prompt}</div>
+      `;
+      chatWindow.appendChild(userMessage);
+
+      // 清空输入框
+      document.getElementById("prompt").value = "";
+
+      // 添加加载动画
+      const botMessage = document.createElement("div");
+      botMessage.className = "message bot";
+      botMessage.innerHTML = `
+        <div class="message-content">
+          <div class="loader"></div>
+        </div>
+      `;
+      chatWindow.appendChild(botMessage);
+
+      // 滚动到底部
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+
+      // 禁用发送按钮
+      sendButton.disabled = true;
+      sendButton.textContent = "Sending...";
+
+      try {
+        const formData = new FormData();
+        formData.append("prompt", prompt);
+        if (fileInput.files[0]) {
+          formData.append("file", fileInput.files[0]);
+        }
+
+        // 调用后端 API
+        const response = await fetch("/generate", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch response");
+        }
+
+        const data = await response.json();
+
+        // 更新机器人消息
+        botMessage.innerHTML = `
+          <div class="message-content">${data.response}</div>
+        `;
+      } catch (error) {
+        botMessage.innerHTML = `
+          <div class="message-content">Error: ${error.message}</div>
+        `;
+      } finally {
+        // 启用发送按钮
+        sendButton.disabled = false;
+        sendButton.textContent = "Send";
+
+        // 滚动到底部
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+    }
+
+    // 自动调整输入框高度
+    const textarea = document.getElementById("prompt");
+    textarea.addEventListener("input", () => {
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    });
+
+    // 按 Enter 发送消息
+    textarea.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
